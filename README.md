@@ -16,3 +16,14 @@ Dùng Node.js 22. Chạy `npm ci` rồi `npm run dev`. Để kiểm tra bản ph
 ## GitHub Pages
 
 Trong Settings → Pages của repository, chọn GitHub Actions làm nguồn triển khai. Khi push lên nhánh main, workflow tạo bản build và triển khai thư mục dist. Có thể chạy lại từ Actions → Deploy React to GitHub Pages → Run workflow. URL được hiển thị trong deployment github-pages.
+
+## Các phân hệ trong bản mở rộng
+
+- **Khách hàng** quản lý thông tin liên hệ, lịch sử phiếu và tiếp nhận lượt mới cho khách đã có hồ sơ.
+- **Phiếu xét nghiệm** lưu thông tin tại thời điểm tiếp nhận và các dịch vụ chỉ định.
+- **Thu ngân** tính phí theo đơn giá trên phiếu, ghi nhận tiền mặt hoặc chuyển khoản và in biên nhận. Sau khi thu tiền, danh sách dịch vụ trên phiếu được khóa.
+- **Kết quả**, **Huyết học** và **Hóa sinh** tra cứu theo chỉ số và mở phiếu để nhập kết quả.
+- **Danh mục** thêm hoặc sửa dịch vụ, chuyên khoa, đơn vị đo và đơn giá. Mỗi phiếu giữ đơn giá và tên dịch vụ tại lúc chỉ định. Đơn giá khởi tạo là giá minh họa.
+- **Báo cáo** tổng hợp số mẫu theo ngày lấy mẫu và thực thu theo ngày thanh toán.
+
+Khi nâng cấp, ứng dụng đọc các phiếu đã lưu của phiên bản trước trên cùng trình duyệt. Mỗi phiếu cũ được liên kết với một hồ sơ khách hàng riêng vì bản trước chưa có mã khách hàng.
