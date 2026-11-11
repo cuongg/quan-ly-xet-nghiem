@@ -1,0 +1,40 @@
+import React, {useState} from 'react'
+import {createRoot} from 'react-dom/client'
+import './style.css'
+
+const tests = [['Glucose','mmol/L'],['Cholesterol','mmol/L'],['Triglyceride','mmol/L'],['HDL-Cholesterol','mmol/L'],['LDL-Cholesterol','mmol/L'],['AST (GOT)','U/L'],['ALT (GPT)','U/L'],['GGT','U/L'],['Ure','mmol/L'],['Creatinine','µmol/L'],['Acid uric','µmol/L'],['Amylase','U/L'],['Canxi toàn phần','mmol/L'],['Protein toàn phần','g/L'],['Albumin','g/L'],['Bilirubin toàn phần','µmol/L'],['Bilirubin trực tiếp','µmol/L']]
+const stages=['Chờ xử lý','Đang xét nghiệm','Hoàn tất']
+const icons={lab:'M9 3h6m-5 0v6L4 19q-1 2 2 2h12q3 0 2-2l-6-10V3M7 15h10',list:'M4 4h16v16H4zM8 9h8M8 14h6',book:'M3 5q5-2 9 1 4-3 9-1v14q-5-2-9 1-4-3-9-1zM12 6v14',clock:'M12 3a9 9 0 1 0 .01 0M12 7v5l3 2',check:'M4 12l5 5L20 6',search:'M16 16l5 5M18 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0',plus:'M12 5v14M5 12h14',arrow:'M8 12h9m-4-4 4 4-4 4'}
+function Icon({name}){return <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={icons[name]}/></svg>}
+const names=['Lê Minh Anh','Nguyễn Hoàng Nam','Trần Thu Hà','Phạm Gia Bảo','Vũ Thanh Mai','Đỗ Hải Yến','Hoàng Đức Huy','Ngô Bảo Ngọc']
+const localTime=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,16)}
+const fresh=()=>({name:'',year:'',sex:'',doctor:'',address:'',phone:'',diagnosis:'',note:'',sample:'Huyết thanh',time:localTime(),received:'',status:0,rows:[]})
+const row=i=>({i,value:'',ref:'',flag:''})
+const seed=()=>names.map((name,i)=>({...fresh(),id:'XN-'+String(108-i).padStart(4,'0'),name,year:1980+i,sex:i%2?'Nam':'Nữ',status:i%3,time:localTime().slice(0,10)+'T'+['10:42','10:28','10:15','09:56','09:41','09:20','09:05','08:52'][i],rows:[0,1,2].map(j=>({...row(j),value:i%3===2?String([5,4,1][j]):''}))}))
+const key='lamlab-records-v1'
+const format=t=>t?new Date(t).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'}):'—'
+function Pill({s}){return <span className={'pill p'+s}><b>●</b>{stages[s]}</span>}
+function App(){
+ const [records,setRecords]=useState(()=>{const saved=localStorage.getItem(key);return saved?JSON.parse(saved):seed()})
+ const [page,go]=useState('list'),[draft,edit]=useState(null),[q,search]=useState(''),[filter,select]=useState(-1),[message,notify]=useState('')
+ const field=(k,v)=>edit({...draft,[k]:v})
+ const navigate=p=>{go(p);edit(null);notify('')}
+ function save(e){e.preventDefault();if(!draft.name.trim()||!draft.rows.length)return notify('Vui lòng nhập họ tên và chọn ít nhất một xét nghiệm.')
+ if(draft.status===2&&draft.rows.some(r=>!r.value.trim()))return notify('Cần nhập đủ kết quả trước khi hoàn tất.')
+ const item={...draft,name:draft.name.trim(),id:draft.id||'XN-'+String(Math.max(0,...records.map(r=>Number(r.id.slice(3))))+1).padStart(4,'0')}
+ const next=draft.id?records.map(r=>r.id===item.id?item:r):[item,...records]
+ try{localStorage.setItem(key,JSON.stringify(next))}catch{return notify('Trình duyệt không lưu được dữ liệu. Hãy giữ phiếu đang mở.')}
+ setRecords(next);navigate('list');search('');select(-1);notify('Đã lưu phiếu '+item.id)}
+ const normalize=s=>s.toLocaleLowerCase('vi').normalize('NFD').replace(/\p{M}/gu,'').replaceAll('đ','d')
+ const shown=records.filter(r=>(filter<0||r.status===filter)&&normalize(r.name+' '+r.id).includes(normalize(q.trim())))
+ const title=draft?(draft.id||'Tạo phiếu xét nghiệm'):page==='list'?'Phiếu xét nghiệm':'Danh mục xét nghiệm'
+ return <><aside><div className="brand"><i><Icon name="lab"/></i>LamLab</div><small>KHÔNG GIAN LÀM VIỆC</small>{[['list','list','Phiếu xét nghiệm'],['catalog','book','Danh mục dịch vụ']].map(([p,ic,t])=><button key={p} className={page===p?'active':''} onClick={()=>navigate(p)}><Icon name={ic}/>{t}</button>)}<footer><span className="avatar">KT</span><div><strong>Kỹ thuật viên</strong><small>Không gian demo</small></div></footer></aside>
+ <main><header>Phòng xét nghiệm <span>/</span> <strong>{title}</strong></header><article><div className="intro"><div><small className="eyebrow">QUẢN LÝ XÉT NGHIỆM</small><h1>{title}</h1><p>{draft?'Thông tin tiếp nhận và kết quả xét nghiệm.':page==='list'?'Theo dõi mẫu và kết quả xét nghiệm trong phòng lab.':'Các dịch vụ hóa sinh và đơn vị đo.'}</p></div>{!draft&&page==='list'&&<button className="primary" onClick={()=>{edit(fresh());notify('')}}><Icon name="plus"/>Tạo phiếu mới</button>}</div>
+ {message&&<p role="status">{message}</p>}
+ {draft?<form onSubmit={save}><section><h2>Thông tin tiếp nhận</h2><div className="grid">{[['name','Họ và tên'],['year','Năm sinh','number'],['sex','Giới tính'],['phone','Số điện thoại'],['address','Địa chỉ'],['doctor','Bác sĩ chỉ định'],['diagnosis','Chẩn đoán'],['sample','Loại mẫu'],['time','Thời gian lấy mẫu','datetime-local'],['received','Thời gian nhận mẫu','datetime-local'],['note','Ghi chú']].map(([k,t,type])=><label key={k}>{t}<input required={['name','sample','time'].includes(k)} type={type||'text'} value={draft[k]} onChange={e=>field(k,e.target.value)}/></label>)}</div></section>
+ <section><h2>Kết quả xét nghiệm</h2><select aria-label="Thêm dịch vụ" value="" onChange={e=>field('rows',[...draft.rows,row(Number(e.target.value))])}><option value="" disabled>+ Thêm dịch vụ xét nghiệm</option>{tests.map(([t],i)=>!draft.rows.some(r=>r.i===i)&&<option key={t} value={i}>{t}</option>)}</select>{draft.rows.map((r,n)=><div className="result" key={r.i}><strong>{tests[r.i].join(' · ')}</strong>{[['value','Kết quả'],['ref','Khoảng tham chiếu'],['flag','Ghi chú']].map(([k,t])=><label key={k}>{t}<input value={r[k]} onChange={e=>field('rows',draft.rows.map((a,b)=>b===n?{...a,[k]:e.target.value}:a))}/></label>)}<button type="button" onClick={()=>field('rows',draft.rows.filter(a=>a.i!==r.i))}>Bỏ</button></div>)}</section><label>Trạng thái<select value={draft.status} onChange={e=>field('status',Number(e.target.value))}>{stages.map((s,i)=><option key={s} value={i}>{s}</option>)}</select></label><div className="actions"><button type="button" onClick={()=>navigate('list')}>Quay lại</button>{draft.id&&<button type="button" onClick={()=>window.print()}>In phiếu hiện tại</button>}<button className="primary">Lưu phiếu</button></div></form>:page==='catalog'?<section><h2>Dịch vụ hóa sinh</h2><table><thead><tr><th>Dịch vụ</th><th>Đơn vị</th></tr></thead><tbody>{tests.map(([t,u])=><tr key={t}><td>{t}</td><td>{u}</td></tr>)}</tbody></table></section>:<>
+ <div className="stats">{['Tổng số phiếu',...stages].map((s,i)=><button key={s} onClick={()=>select(i-1)}><div className={'badge b'+i}><Icon name={['list','clock','lab','check'][i]}/></div><div><small>{s}</small><strong>{i?records.filter(r=>r.status===i-1).length:records.length}</strong></div></button>)}</div>
+ <section className="list"><div className="sectionhead"><h2>Danh sách phiếu</h2><span>{shown.length} phiếu</span></div><div className="filters"><div className="search"><Icon name="search"/><input aria-label="Tìm phiếu" placeholder="Tìm theo mã phiếu, tên bệnh nhân..." value={q} onChange={e=>search(e.target.value)}/></div><select aria-label="Lọc trạng thái" value={filter} onChange={e=>select(Number(e.target.value))}><option value="-1">Tất cả trạng thái</option>{stages.map((s,i)=><option key={s} value={i}>{s}</option>)}</select></div>
+ <div className="scroll"><table><thead><tr>{['Mã phiếu','Bệnh nhân','Loại mẫu','Thời gian lấy mẫu','Trạng thái',''].map(t=><th key={t}>{t}</th>)}</tr></thead><tbody>{shown.map(r=><tr key={r.id}><td><button className="link" onClick={()=>{edit(r);notify('')}}>{r.id}</button></td><td><strong>{r.name}</strong><small>{r.sex} · {r.year}</small></td><td>{r.sample}</td><td>{format(r.time)}</td><td><Pill s={r.status}/></td><td><button aria-label={'Mở '+r.id} onClick={()=>{edit(r);notify('')}}><Icon name="arrow"/></button></td></tr>)}</tbody></table></div>{!shown.length&&<p>Không tìm thấy phiếu phù hợp.</p>}</section></>}</article></main></>
+}
+createRoot(document.getElementById('root')).render(<App/>)
