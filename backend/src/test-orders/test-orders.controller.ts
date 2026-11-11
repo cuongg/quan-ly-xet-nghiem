@@ -3,7 +3,7 @@ import { WorkspaceService } from '../workspace/workspace.service'
 @Controller('test-orders')
 export class TestOrdersController {
   constructor(private readonly db: WorkspaceService) {}
-  @Get() list() {
-    return this.db.read().data?.records ?? []
+  @Get() async list() {
+    return (await this.db.read()).data?.records ?? []
   }
 }

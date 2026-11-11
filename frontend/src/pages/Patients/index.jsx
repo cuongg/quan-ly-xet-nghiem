@@ -1,3 +1,4 @@
+import {newCustomerId} from '../../services/lab'
 import React, { useState } from 'react'
 import { GridTable } from '../../components/GridTable'
 import { personFrom, personFields } from '../../services/lab'
@@ -87,7 +88,7 @@ export function Customers({ customers, records, save, start, open }) {
         <button
           className="primary"
           onClick={() =>
-            edit({ ...personFrom({}), customerId: crypto.randomUUID() })
+            edit({ ...personFrom({}), customerId: newCustomerId() })
           }
         >
           + Thêm khách hàng

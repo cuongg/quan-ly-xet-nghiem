@@ -10,6 +10,8 @@ async function main() {
     bodyParser: false,
   })
   app.useBodyParser('json', { limit: '8mb' })
+  if(process.env.LIS_WEB_ROOT) app.useStaticAssets(process.env.LIS_WEB_ROOT)
+  app.enableShutdownHooks()
   app.setGlobalPrefix('api')
   app.enableCors({
     origin: process.env.LIS_FRONTEND_ORIGIN || 'http://localhost:5173',

@@ -3,11 +3,9 @@ import { WorkspaceService } from '../workspace/workspace.service'
 @Controller('test-results')
 export class TestResultsController {
   constructor(private readonly db: WorkspaceService) {}
-  @Get() list() {
+  @Get() async list() {
     return (
-      this.db
-        .read()
-        .data?.records.flatMap((r) =>
+      (await this.db.read()).data?.records.flatMap((r) =>
           r.rows.map((result) => ({
             orderId: r.id,
             customerId: r.customerId,

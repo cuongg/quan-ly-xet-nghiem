@@ -1,3 +1,4 @@
+import {newCustomerId} from './services/lab'
 import React, { useState } from 'react'
 import { menu } from './routes/menu'
 import { localTime, fresh } from './services/workspace'
@@ -88,7 +89,7 @@ export default function App({ initial, remote, token, onLogout }) {
     const next = draft.id
       ? records.map((r) => (r.id === item.id ? item : r))
       : [item, ...records]
-    item.customerId = draft.customerId || crypto.randomUUID()
+    item.customerId = draft.customerId || newCustomerId()
     const people = customers.some((c) => c.customerId === item.customerId)
       ? customers
       : [...customers, { ...personFrom(item), customerId: item.customerId }]

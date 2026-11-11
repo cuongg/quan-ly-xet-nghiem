@@ -3,14 +3,9 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common'
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  writeFileSync,
-} from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import {existsSync,readFileSync} from 'node:fs'
+import {resolve} from 'node:path'
+import {Pool} from 'pg'
 import { randomUUID } from 'node:crypto'
 
 interface Service {
@@ -103,25 +98,46 @@ function valid(d: Data) {
 
 @Injectable()
 export class WorkspaceService {
-  private readonly path = resolve(
-    process.env.LIS_DATA_FILE || 'data/workspace.json',
-  )
-  private state: Snapshot = existsSync(this.path)
-    ? JSON.parse(readFileSync(this.path, 'utf8'))
-    : { version: null, data: null }
-  read() {
-    return this.state
+  private readonly pool = new Pool({connectionString:process.env.DATABASE_URL, max:5, connectionTimeoutMillis:5000})
+
+  async onModuleInit() {
+    if(!process.env.DATABASE_URL) throw new Error('Cần cấu hình DATABASE_URL cho PostgreSQL.')
+    await this.pool.query(`CREATE TABLE IF NOT EXISTS lamlab_workspace (
+      id smallint PRIMARY KEY CHECK (id = 1),
+      version uuid,
+      data jsonb,
+      CHECK ((version IS NULL) = (data IS NULL))
+    )`)
+    // Bootstrap once, preserving a previous server's snapshot and revision.
+    const existing = await this.pool.query('SELECT id FROM lamlab_workspace WHERE id = 1')
+    if(existing.rowCount) return
+    const file = resolve(process.env.LIS_DATA_FILE || 'data/workspace.json')
+    let initial:Snapshot = {version:null,data:null}
+    if(existsSync(file)){
+      initial = JSON.parse(readFileSync(file,'utf8'))
+      if(!initial?.version || !initial.data || !valid(initial.data)) throw new Error('Tệp dữ liệu cũ không hợp lệ.')
+    }
+    await this.pool.query(
+      'INSERT INTO lamlab_workspace (id,version,data) VALUES (1,$1,$2) ON CONFLICT DO NOTHING',
+      [initial.version, initial.data],
+    )
   }
-  save(input: Snapshot) {
-    if (!input || !input.data || !valid(input.data))
-      throw new BadRequestException('Dữ liệu phiếu hoặc danh mục không hợp lệ.')
-    if (input.version !== this.state.version)
-      throw new ConflictException('Dữ liệu đã thay đổi. Hãy tải lại trang.')
-    const next = { version: randomUUID(), data: input.data }
-    mkdirSync(dirname(this.path), { recursive: true })
-    writeFileSync(this.path + '.tmp', JSON.stringify(next), { mode: 0o600 })
-    renameSync(this.path + '.tmp', this.path)
-    this.state = next
-    return { version: next.version }
+
+  async onModuleDestroy(){await this.pool.end()}
+
+  async read():Promise<Snapshot>{
+    const {rows}=await this.pool.query<Snapshot>('SELECT version,data FROM lamlab_workspace WHERE id=1')
+    return rows[0]
+  }
+
+  async save(input:Snapshot){
+    if(!input || !input.data || !valid(input.data)) throw new BadRequestException('Dữ liệu phiếu hoặc danh mục không hợp lệ.')
+    const version=randomUUID()
+    const result=await this.pool.query(
+      'UPDATE lamlab_workspace SET version=$1, data=$2 WHERE id=1 AND version::text IS NOT DISTINCT FROM $3 RETURNING version',
+      [version,input.data,input.version],
+    )
+    if(!result.rowCount) throw new ConflictException('Dữ liệu đã thay đổi. Hãy tải lại trang.')
+    return {version}
   }
 }

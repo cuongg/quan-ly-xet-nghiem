@@ -13,3 +13,9 @@ export const personFields = [
 ]
 export const personFrom = (r) =>
   Object.fromEntries(personFields.map(([key]) => [key, r[key] || '']))
+
+export function newCustomerId() {
+  if (crypto.randomUUID) return crypto.randomUUID()
+  // getRandomValues is available on HTTP origins in a local network.
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2,'0')).join('')
+}
