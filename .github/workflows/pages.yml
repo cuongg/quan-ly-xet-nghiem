@@ -12,6 +12,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
+    defaults:
+      run:
+        working-directory: frontend
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -23,9 +26,11 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: frontend/dist
       - id: deployment
         uses: actions/deploy-pages@v4
